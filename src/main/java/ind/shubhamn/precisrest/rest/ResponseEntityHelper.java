@@ -17,12 +17,13 @@ public class ResponseEntityHelper {
         return new ResponseEntity(t, HttpStatus.OK);
     }
 
-    public static <T> ResponseEntity failureResponseEntity(Exception e) {
+    public static <T> ResponseEntity failureResponseEntity(Exception e, String errorCode) {
         String message = e.getMessage();
         String timeString = String.valueOf(System.currentTimeMillis());
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("id", timeString);
         responseMap.put("message", message);
+        responseMap.put("errorCode", errorCode);
         return ResponseEntity.
                 status(HttpStatus.INTERNAL_SERVER_ERROR).
                 contentType(MediaType.APPLICATION_JSON).
