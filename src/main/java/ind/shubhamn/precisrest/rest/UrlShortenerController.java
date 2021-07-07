@@ -1,5 +1,6 @@
 package ind.shubhamn.precisrest.rest;
 
+import ind.shubhamn.precisrest.model.ShortenedUrl;
 import ind.shubhamn.precisrest.service.UrlShortenerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -13,7 +14,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.NoSuchElementException;
 
-@CrossOrigin(origins = "*")
 @RestController
 @Scope(WebApplicationContext.SCOPE_REQUEST)
 @RequestMapping("app/rest")
@@ -25,20 +25,20 @@ public class UrlShortenerController {
     private UrlShortenerService urlShortenerService;
 
     @PostMapping(value = "shorten")
-//    @CrossOrigin(origins = "http://localhost:4200")
-    public ResponseEntity<String> createShortenedUrl(@RequestBody String longUrl) {
+    public ResponseEntity<ShortenedUrl> createShortenedUrl(@RequestBody ShortenedUrl shortenedUrl) {
         try {
-            return ResponseEntityHelper.successResponseEntity(urlShortenerService.shortenUrl(longUrl));
+            shortenedUrl.setShortUrl(urlShortenerService.shortenUrl(shortenedUrl.getLongUrl()));
+            return ResponseEntityHelper.successResponseEntity(shortenedUrl);
         } catch (Exception e) {
             return ResponseEntityHelper.failureResponseEntity(e, null);
         }
     }
 
-//    @CrossOrigin(origins = "http://localhost:4200")
-    @PostMapping(value = "getLong")
-    public ResponseEntity<String> getLongUrl(@RequestBody String shortUrl) {
+    @PostMapping(value = "long")
+    public ResponseEntity<ShortenedUrl> getLongUrl(@RequestBody ShortenedUrl shortenedUrl) {
         try {
-            return ResponseEntityHelper.successResponseEntity(urlShortenerService.getLongUrl(shortUrl));
+            shortenedUrl.setLongUrl(urlShortenerService.getLongUrl(shortenedUrl.getShortUrl()));
+            return ResponseEntityHelper.successResponseEntity(shortenedUrl);
         } catch (NoSuchElementException e) {
             return ResponseEntityHelper.failureResponseEntity(e, errorCode);
         } catch (Exception e) {
