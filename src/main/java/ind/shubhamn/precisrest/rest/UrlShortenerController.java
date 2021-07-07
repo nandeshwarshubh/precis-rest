@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.NoSuchElementException;
 
+@CrossOrigin(origins = "*")
 @RestController
 @Scope(WebApplicationContext.SCOPE_REQUEST)
 @RequestMapping("app/rest")
@@ -23,6 +25,7 @@ public class UrlShortenerController {
     private UrlShortenerService urlShortenerService;
 
     @PostMapping(value = "shorten")
+//    @CrossOrigin(origins = "http://localhost:4200")
     public ResponseEntity<String> createShortenedUrl(@RequestBody String longUrl) {
         try {
             return ResponseEntityHelper.successResponseEntity(urlShortenerService.shortenUrl(longUrl));
@@ -31,6 +34,7 @@ public class UrlShortenerController {
         }
     }
 
+//    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping(value = "getLong")
     public ResponseEntity<String> getLongUrl(@RequestBody String shortUrl) {
         try {
