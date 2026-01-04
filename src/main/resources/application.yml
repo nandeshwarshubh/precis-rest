@@ -1,4 +1,4 @@
 database:
-  url: "jdbc:mysql://localhost:3306/db"
-  username: "shubham"
-  password: "root123"
+  url: "jdbc:postgresql://localhost:5432/precis"
+  username: "postgres"
+  password: "postgres"

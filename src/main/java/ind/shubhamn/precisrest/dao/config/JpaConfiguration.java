@@ -11,7 +11,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -25,8 +25,17 @@ public class JpaConfiguration {
     @Bean
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        dataSource.setUrl(databaseConfig.getUrl());
+        dataSource.setDriverClassName("org.postgresql.Driver");
+
+        // Add timezone parameter to avoid "Asia/Calcutta" error in PostgreSQL 17
+        String url = databaseConfig.getUrl();
+        if (!url.contains("?")) {
+            url += "?TimeZone=UTC";
+        } else if (!url.contains("TimeZone")) {
+            url += "&TimeZone=UTC";
+        }
+
+        dataSource.setUrl(url);
         dataSource.setUsername(databaseConfig.getUsername());
         dataSource.setPassword(databaseConfig.getPassword());
         return dataSource;
@@ -40,7 +49,7 @@ public class JpaConfiguration {
     @Bean
     public JpaVendorAdapter jpaVendorAdapter() {
         HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter();
-        jpaVendorAdapter.setDatabase(Database.MYSQL);
+        jpaVendorAdapter.setDatabase(Database.POSTGRESQL);
         jpaVendorAdapter.setGenerateDdl(true);
         jpaVendorAdapter.setShowSql(true);
         return jpaVendorAdapter;
@@ -53,7 +62,7 @@ public class JpaConfiguration {
         lemfb.setJpaVendorAdapter(jpaVendorAdapter());
         lemfb.setPackagesToScan("ind.shubhamn.precisrest.model");
         Properties properties = new Properties();
-        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQL5Dialect");
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.setProperty("hibernate.hbm2ddl.auto", "update");
         lemfb.setJpaProperties(properties);
 

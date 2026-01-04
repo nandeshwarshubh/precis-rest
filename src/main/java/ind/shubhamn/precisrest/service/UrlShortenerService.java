@@ -2,13 +2,13 @@ package ind.shubhamn.precisrest.service;
 
 import ind.shubhamn.precisrest.dao.UrlShortenerDAO;
 import ind.shubhamn.precisrest.model.ShortenedUrl;
-import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -20,7 +20,8 @@ public class UrlShortenerService {
     public String shortenUrl(String longUrl) throws Exception {
         byte[] encodedHash = getSHA256ByteArray(longUrl);
         ShortenedUrl shortenedUrl = new ShortenedUrl();
-        shortenedUrl.setShortUrl(Base64.encodeBase64URLSafeString(encodedHash).substring(0, 8));
+        String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(encodedHash);
+        shortenedUrl.setShortUrl(encoded.substring(0, 8));
         shortenedUrl.setLongUrl(longUrl);
         saveShortenedUrl(shortenedUrl);
         return shortenedUrl.getShortUrl();
