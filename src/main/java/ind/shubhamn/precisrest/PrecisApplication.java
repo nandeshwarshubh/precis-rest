@@ -9,10 +9,6 @@ import java.util.TimeZone;
 public class PrecisApplication {
 
 	public static void main(String[] args) {
-		// Set default timezone to UTC to avoid PostgreSQL timezone issues
-		// This fixes the "Asia/Calcutta" timezone error with PostgreSQL 17+
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-
 		SpringApplication.run(PrecisApplication.class, args);
 	}
 

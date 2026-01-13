@@ -29,23 +29,7 @@ public class JpaConfiguration {
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("org.postgresql.Driver");
-
-        // Add timezone and schema parameters
-        String url = databaseConfig.getUrl();
-
-        // Add TimeZone parameter to avoid "Asia/Calcutta" error in PostgreSQL 17
-        if (!url.contains("?")) {
-            url += "?TimeZone=UTC&currentSchema=precis";
-        } else {
-            if (!url.contains("TimeZone")) {
-                url += "&TimeZone=UTC";
-            }
-            if (!url.contains("currentSchema")) {
-                url += "&currentSchema=precis";
-            }
-        }
-
-        dataSource.setUrl(url);
+        dataSource.setUrl(databaseConfig.getUrl());
         dataSource.setUsername(databaseConfig.getUsername());
         dataSource.setPassword(databaseConfig.getPassword());
         return dataSource;
