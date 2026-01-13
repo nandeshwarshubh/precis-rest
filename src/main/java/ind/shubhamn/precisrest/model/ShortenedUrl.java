@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "URL_SHORTEN", indexes = {
+@Table(name = "url_shorten", schema = "precis", indexes = {
     @Index(name = "idx_long_url", columnList = "long_url")
 })
 public class ShortenedUrl {

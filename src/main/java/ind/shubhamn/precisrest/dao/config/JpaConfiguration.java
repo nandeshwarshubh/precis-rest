@@ -1,8 +1,10 @@
 package ind.shubhamn.precisrest.dao.config;
 
+import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -23,22 +25,42 @@ public class JpaConfiguration {
     private DatabaseConfig databaseConfig;
 
     @Bean
+    @Primary
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("org.postgresql.Driver");
 
-        // Add timezone parameter to avoid "Asia/Calcutta" error in PostgreSQL 17
+        // Add timezone and schema parameters
         String url = databaseConfig.getUrl();
+
+        // Add TimeZone parameter to avoid "Asia/Calcutta" error in PostgreSQL 17
         if (!url.contains("?")) {
-            url += "?TimeZone=UTC";
-        } else if (!url.contains("TimeZone")) {
-            url += "&TimeZone=UTC";
+            url += "?TimeZone=UTC&currentSchema=precis";
+        } else {
+            if (!url.contains("TimeZone")) {
+                url += "&TimeZone=UTC";
+            }
+            if (!url.contains("currentSchema")) {
+                url += "&currentSchema=precis";
+            }
         }
 
         dataSource.setUrl(url);
         dataSource.setUsername(databaseConfig.getUsername());
         dataSource.setPassword(databaseConfig.getPassword());
         return dataSource;
+    }
+
+    @Bean(initMethod = "migrate")
+    public Flyway flyway(DataSource dataSource) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .schemas("precis")
+                .defaultSchema("precis")
+                .baselineOnMigrate(true)
+                .validateOnMigrate(true)
+                .load();
     }
 
     @Bean
