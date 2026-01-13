@@ -1,8 +1,10 @@
 package ind.shubhamn.precisrest.service;
 
+import static org.mockito.Mockito.when;
+
 import ind.shubhamn.precisrest.dao.UrlShortenerDAO;
 import ind.shubhamn.precisrest.model.ShortenedUrl;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -10,18 +12,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Optional;
-
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-
 public class UrlShortenerServiceTest {
 
-    @InjectMocks
-    private UrlShortenerService urlShortenerService;
+    @InjectMocks private UrlShortenerService urlShortenerService;
 
-    @Mock
-    private UrlShortenerDAO urlShortenerDAO;
+    @Mock private UrlShortenerDAO urlShortenerDAO;
 
     @BeforeEach
     public void setup() {

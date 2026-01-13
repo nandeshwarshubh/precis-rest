@@ -1,7 +1,8 @@
 plugins {
-	id 'org.springframework.boot' version '4.0.0'
+	id 'org.springframework.boot' version '4.0.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'java'
+	id 'com.diffplug.spotless' version '8.1.0'
 }
 
 group = 'ind.shubhamn'
@@ -34,4 +35,40 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+}
+
+spotless {
+	java {
+		target 'src/**/*.java'
+		// Use google-java-format with specific version for consistency
+		googleJavaFormat('1.33.0').aosp().reflowLongStrings()
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+		// Add license header if needed
+		// licenseHeaderFile 'spotless.license.java'
+	}
+}
+
+// Automatically format code before compiling
+tasks.named('compileJava') {
+	dependsOn 'spotlessApply'
+}
+
+tasks.named('compileTestJava') {
+	dependsOn 'spotlessApply'
+}
+
+// Add a task to check formatting without applying
+tasks.register('formatCheck') {
+	dependsOn 'spotlessCheck'
+	group = 'verification'
+	description = 'Checks that source code satisfies formatting rules'
+}
+
+// Add a task to apply formatting
+tasks.register('format') {
+	dependsOn 'spotlessApply'
+	group = 'formatting'
+	description = 'Applies code formatting rules to source code'
 }

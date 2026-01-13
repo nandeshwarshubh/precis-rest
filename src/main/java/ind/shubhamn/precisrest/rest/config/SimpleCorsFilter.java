@@ -1,17 +1,5 @@
 package ind.shubhamn.precisrest.rest.config;
 
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
 /*
 @Component
 public class SimpleCorsFilter extends CorsFilter {

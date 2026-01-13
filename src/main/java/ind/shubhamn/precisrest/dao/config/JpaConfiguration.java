@@ -1,5 +1,8 @@
 package ind.shubhamn.precisrest.dao.config;
 
+import jakarta.persistence.EntityManagerFactory;
+import java.util.Properties;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -13,16 +16,11 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
-import jakarta.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-import java.util.Properties;
-
 @Configuration
 @EnableJpaRepositories(basePackages = "ind.shubhamn.precisrest.dao")
 public class JpaConfiguration {
 
-    @Autowired
-    private DatabaseConfig databaseConfig;
+    @Autowired private DatabaseConfig databaseConfig;
 
     @Bean
     @Primary
@@ -70,8 +68,8 @@ public class JpaConfiguration {
         Properties properties = new Properties();
         // Hibernate auto-detects PostgreSQLDialect, no need to specify explicitly
         properties.setProperty("hibernate.hbm2ddl.auto", "none");
-//        properties.setProperty("hibernate.show_sql", "true");
-//        properties.setProperty("hibernate.format_sql", "true");
+        //        properties.setProperty("hibernate.show_sql", "true");
+        //        properties.setProperty("hibernate.format_sql", "true");
         lemfb.setJpaProperties(properties);
 
         return lemfb;

@@ -2,20 +2,18 @@ package ind.shubhamn.precisrest.service;
 
 import ind.shubhamn.precisrest.dao.UrlShortenerDAO;
 import ind.shubhamn.precisrest.model.ShortenedUrl;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 @Service
 public class UrlShortenerService {
 
-    @Autowired
-    private UrlShortenerDAO urlShortenerDAO;
+    @Autowired private UrlShortenerDAO urlShortenerDAO;
 
     public String shortenUrl(String longUrl) throws Exception {
         byte[] encodedHash = getSHA256ByteArray(longUrl);
@@ -29,8 +27,7 @@ public class UrlShortenerService {
 
     private byte[] getSHA256ByteArray(String longUrl) throws NoSuchAlgorithmException {
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        return messageDigest.digest(
-                longUrl.getBytes(StandardCharsets.UTF_8));
+        return messageDigest.digest(longUrl.getBytes(StandardCharsets.UTF_8));
     }
 
     private void saveShortenedUrl(ShortenedUrl shortenedUrl) {
@@ -41,5 +38,4 @@ public class UrlShortenerService {
         Optional<ShortenedUrl> shortenedUrl = urlShortenerDAO.findByShortUrl(shortUrl);
         return shortenedUrl.get().getLongUrl();
     }
-
 }

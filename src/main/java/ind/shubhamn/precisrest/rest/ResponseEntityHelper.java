@@ -1,13 +1,12 @@
 package ind.shubhamn.precisrest.rest;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class ResponseEntityHelper {
 
@@ -24,9 +23,8 @@ public class ResponseEntityHelper {
         responseMap.put("id", timeString);
         responseMap.put("message", message);
         responseMap.put("errorCode", errorCode);
-        return ResponseEntity.
-                status(HttpStatus.INTERNAL_SERVER_ERROR).
-                contentType(MediaType.APPLICATION_JSON).
-                body(responseMap);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseMap);
     }
 }
