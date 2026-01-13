@@ -1,5 +1,5 @@
-# PostgreSQL 17 Dockerfile
-FROM postgres:17
+# PostgreSQL 18.1 Dockerfile
+FROM postgres:18.1
 
 # Expose PostgreSQL port
 EXPOSE 5432

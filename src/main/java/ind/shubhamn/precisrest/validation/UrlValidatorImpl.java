@@ -2,8 +2,8 @@ package ind.shubhamn.precisrest.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -32,10 +32,19 @@ public class UrlValidatorImpl implements ConstraintValidator<UrlValidator, Strin
         }
 
         try {
-            URL url = new URL(value);
+            URI uri = new URI(value);
+
+            // Ensure the URI has a scheme and host
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                context.disableDefaultConstraintViolation();
+                context.buildConstraintViolationWithTemplate(
+                                "URL must have a valid scheme and host")
+                        .addConstraintViolation();
+                return false;
+            }
 
             // Check for blacklisted schemes
-            String scheme = url.getProtocol().toLowerCase();
+            String scheme = uri.getScheme().toLowerCase();
             if (BLACKLISTED_SCHEMES.contains(scheme)) {
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate(
@@ -53,7 +62,7 @@ public class UrlValidatorImpl implements ConstraintValidator<UrlValidator, Strin
             }
 
             // Check for blacklisted domains (optional - can be disabled for development)
-            String host = url.getHost().toLowerCase();
+            String host = uri.getHost().toLowerCase();
             // Uncomment to enable domain blacklist
             // if (BLACKLISTED_DOMAINS.stream().anyMatch(host::contains)) {
             //     context.disableDefaultConstraintViolation();
@@ -73,7 +82,7 @@ public class UrlValidatorImpl implements ConstraintValidator<UrlValidator, Strin
 
             return true;
 
-        } catch (MalformedURLException e) {
+        } catch (URISyntaxException e) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Invalid URL format: " + e.getMessage())
                     .addConstraintViolation();

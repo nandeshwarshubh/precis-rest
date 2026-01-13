@@ -2,7 +2,7 @@
 
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.1-blue.svg)](https://www.postgresql.org/)
 [![Gradle](https://img.shields.io/badge/Gradle-9.1-green.svg)](https://gradle.org/)
 
 ## 📋 Table of Contents
@@ -97,7 +97,7 @@ Precis follows a **Layered Architecture** pattern with clear separation of conce
 │                   Database Layer                             │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  PostgreSQL 17                                       │  │
+│  │  PostgreSQL 18.1                                     │  │
 │  │  - URL_SHORTEN Table                                 │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
@@ -121,7 +121,7 @@ Precis follows a **Layered Architecture** pattern with clear separation of conce
 | **Framework**        | Spring Boot                         | 4.0.0   | Application framework                     |
 | **Web**              | Spring Web MVC                      | 7.0.1   | REST API implementation                   |
 | **ORM**              | Hibernate / JPA                     | 7.1.8   | Object-relational mapping                 |
-| **Database**         | PostgreSQL                          | 17      | Primary data store                        |
+| **Database**         | PostgreSQL                          | 18.1    | Primary data store                        |
 | **Build Tool**       | Gradle                              | 9.1     | Dependency management & build automation  |
 | **Testing**          | JUnit 5                             | 5.11.x  | Unit testing framework                    |
 | **Mocking**          | Mockito                             | 5.14.x  | Test mocking framework                    |
@@ -713,7 +713,7 @@ src/test/
 |-------------|---------|--------------|
 | Java JDK    | 25+     | [OpenJDK](https://openjdk.org/) or [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download) |
 | Gradle      | 9.1+    | Included via Gradle Wrapper |
-| PostgreSQL  | 17+     | [PostgreSQL](https://www.postgresql.org/download/) or Docker |
+| PostgreSQL  | 18.1+   | [PostgreSQL](https://www.postgresql.org/download/) or Docker |
 | Docker      | 20.10+  | [Docker Desktop](https://www.docker.com/products/docker-desktop) (optional) |
 
 ### Local Development Setup

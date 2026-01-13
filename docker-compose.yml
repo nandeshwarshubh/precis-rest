@@ -12,7 +12,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PostgreSQL 18+ requires mounting /var/lib/postgresql instead of /var/lib/postgresql/data
+      # This allows pg_upgrade to work properly with --link option
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d precis"]
       interval: 10s
