@@ -2,6 +2,7 @@ package ind.shubhamn.precisrest.rest;
 
 import ind.shubhamn.precisrest.model.ShortenedUrl;
 import ind.shubhamn.precisrest.service.UrlShortenerService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class UrlShortenerController {
     private UrlShortenerService urlShortenerService;
 
     @PostMapping(value = "shorten")
-    public ResponseEntity<ShortenedUrl> createShortenedUrl(@RequestBody ShortenedUrl shortenedUrl) {
+    public ResponseEntity<ShortenedUrl> createShortenedUrl(@Valid @RequestBody ShortenedUrl shortenedUrl) {
         try {
             shortenedUrl.setShortUrl(urlShortenerService.shortenUrl(shortenedUrl.getLongUrl()));
             return ResponseEntityHelper.successResponseEntity(shortenedUrl);

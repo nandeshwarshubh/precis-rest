@@ -1,9 +1,9 @@
 # Precis - URL Shortening Service
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
+[![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
-[![Gradle](https://img.shields.io/badge/Gradle-9.0-green.svg)](https://gradle.org/)
+[![Gradle](https://img.shields.io/badge/Gradle-9.1-green.svg)](https://gradle.org/)
 
 ## 📋 Table of Contents
 
@@ -117,12 +117,12 @@ Precis follows a **Layered Architecture** pattern with clear separation of conce
 
 | Layer                | Technology                          | Version | Purpose                                    |
 |----------------------|-------------------------------------|---------|-------------------------------------------|
-| **Language**         | Java                                | 21      | Primary programming language              |
+| **Language**         | Java                                | 25      | Primary programming language              |
 | **Framework**        | Spring Boot                         | 4.0.0   | Application framework                     |
 | **Web**              | Spring Web MVC                      | 7.0.1   | REST API implementation                   |
 | **ORM**              | Hibernate / JPA                     | 7.1.8   | Object-relational mapping                 |
 | **Database**         | PostgreSQL                          | 17      | Primary data store                        |
-| **Build Tool**       | Gradle                              | 9.0     | Dependency management & build automation  |
+| **Build Tool**       | Gradle                              | 9.1     | Dependency management & build automation  |
 | **Testing**          | JUnit 5                             | 5.11.x  | Unit testing framework                    |
 | **Mocking**          | Mockito                             | 5.14.x  | Test mocking framework                    |
 | **Test DB**          | H2 Database                         | 2.3.x   | In-memory database for testing            |
@@ -479,12 +479,11 @@ Roles:
 
 🔒 **For Production Deployment**:
 1. Enable Spring Security
-2. Implement rate limiting to prevent abuse
-3. Add input validation and sanitization
-4. Use HTTPS/TLS for all communications
-5. Implement API key rotation mechanism
-6. Add request logging and monitoring
-7. Implement CAPTCHA for public endpoints
+2. Add input validation and sanitization
+3. Use HTTPS/TLS for all communications
+4. Implement API key rotation mechanism
+5. Add request logging and monitoring
+6. Implement CAPTCHA for public endpoints
 8. Add URL validation to prevent malicious URLs
 
 ---
@@ -712,8 +711,8 @@ src/test/
 
 | Requirement | Version | Installation |
 |-------------|---------|--------------|
-| Java JDK    | 21+     | [OpenJDK](https://openjdk.org/) or [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download) |
-| Gradle      | 9.0+    | Included via Gradle Wrapper |
+| Java JDK    | 25+     | [OpenJDK](https://openjdk.org/) or [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download) |
+| Gradle      | 9.1+    | Included via Gradle Wrapper |
 | PostgreSQL  | 17+     | [PostgreSQL](https://www.postgresql.org/download/) or Docker |
 | Docker      | 20.10+  | [Docker Desktop](https://www.docker.com/products/docker-desktop) (optional) |
 
@@ -827,7 +826,7 @@ curl -X POST http://localhost:8080/app/rest/shorten \
 
 ```dockerfile
 # Dockerfile (example)
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 COPY build/libs/precis-rest-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
@@ -1310,15 +1309,7 @@ public String getLongUrl(String shortUrl) {
 
 **Benefits**: Reduced database load, faster response times
 
-#### 5. Rate Limiting
-**Priority**: High
-**Description**: Prevent abuse with rate limiting (e.g., 100 requests/hour per IP)
-
-**Implementation**: Bucket4j or Spring Cloud Gateway
-
-**Benefits**: Prevent spam, ensure fair usage
-
-#### 6. API Versioning
+#### 5. API Versioning
 **Priority**: Medium
 **Description**: Version API endpoints for backward compatibility
 
@@ -1329,7 +1320,7 @@ public String getLongUrl(String shortUrl) {
 
 **Benefits**: Safe API evolution, gradual migration
 
-#### 7. Batch URL Shortening
+#### 6. Batch URL Shortening
 **Priority**: Low
 **Description**: Support bulk URL shortening in single request
 
@@ -1345,7 +1336,7 @@ POST /app/rest/shorten/batch
 
 **Benefits**: Improved efficiency for bulk operations
 
-#### 8. QR Code Generation
+#### 7. QR Code Generation
 **Priority**: Low
 **Description**: Generate QR codes for shortened URLs
 

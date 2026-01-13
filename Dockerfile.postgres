@@ -1,0 +1,14 @@
+# PostgreSQL 17 Dockerfile
+FROM postgres:17
+
+# Set timezone to UTC to avoid "Asia/Calcutta" error in PostgreSQL 17
+ENV TZ=UTC
+ENV PGTZ=UTC
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD pg_isready -U postgres || exit 1
+

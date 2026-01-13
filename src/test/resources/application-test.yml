@@ -14,3 +14,15 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+  # Disable Flyway for tests (using H2 with auto DDL)
+  flyway:
+    enabled: false
+
+# Disable tracing for tests
+management:
+  tracing:
+    enabled: false
+  zipkin:
+    tracing:
+      enabled: false
+

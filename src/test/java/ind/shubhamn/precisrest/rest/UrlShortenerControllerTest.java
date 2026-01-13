@@ -6,11 +6,15 @@ import ind.shubhamn.precisrest.service.UrlShortenerService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.NoSuchElementException;
 
@@ -20,11 +24,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 public class UrlShortenerControllerTest {
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
     private MockMvc mockMvc;
+
+    @org.junit.jupiter.api.BeforeEach
+    public void setup() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    }
 
     @MockitoBean
     private UrlShortenerService urlShortenerService;
@@ -51,6 +63,7 @@ public class UrlShortenerControllerTest {
     @Test
     public void createShortenedUrlWithExceptionTest() throws Exception {
         ShortenedUrl shortenedUrl = new ShortenedUrl();
+        shortenedUrl.setLongUrl("http://www.google.com"); // Set a valid URL to pass validation
         when(urlShortenerService.shortenUrl(any())).thenThrow(new RuntimeException());
         String url = "http://localhost:8080/app/rest/shorten";
         String bodyJson = new ObjectMapper().writeValueAsString(shortenedUrl);
