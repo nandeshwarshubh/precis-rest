@@ -1,11 +1,19 @@
 database:
-  url: "jdbc:postgresql://localhost:5432/precis"
-  username: "postgres"
-  password: "postgres"
+  url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/precis}
+  username: ${DATABASE_USERNAME:postgres}
+  password: ${DATABASE_PASSWORD:postgres}
 
 spring:
   application:
     name: precis-rest
+
+  # OAuth2 Resource Server Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:}
+          jwk-set-uri: ${JWT_JWK_SET_URI:}
 
   # Flyway Configuration
   # Flyway will use the custom DataSource bean from JpaConfiguration
@@ -37,7 +45,7 @@ management:
         enabled: true
   tracing:
     sampling:
-      probability: 1.0
+      probability: 0.1  # Sample 10% of requests in production
   zipkin:
     tracing:
       endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
@@ -46,16 +54,19 @@ management:
 logging:
   level:
     root: INFO
-    ind.shubhamn.precisrest: DEBUG
-    org.springframework.web: DEBUG
-    org.flywaydb: DEBUG
+    ind.shubhamn.precisrest: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 # Server Configuration
 server:
   port: ${PORT:8080}
   error:
     include-message: always
-    include-binding-errors: always
+    include-binding-errors: never
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+

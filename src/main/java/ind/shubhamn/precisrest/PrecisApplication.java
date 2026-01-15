@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class PrecisApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(PrecisApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(PrecisApplication.class, args);
+    }
 }

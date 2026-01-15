@@ -1,0 +1,28 @@
+database:
+  url: "jdbc:h2:mem:testdb"
+  username: "sa"
+  password: ""
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+
+  # Disable Flyway for tests (using H2 with auto DDL)
+  flyway:
+    enabled: false
+
+# Disable tracing for tests
+management:
+  tracing:
+    enabled: false
+  zipkin:
+    tracing:
+      enabled: false
+
