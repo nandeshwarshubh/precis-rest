@@ -3,6 +3,7 @@ package ind.shubhamn.precisrest.model;
 import ind.shubhamn.precisrest.validation.UrlValidator;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
@@ -22,6 +23,13 @@ public class ShortenedUrl {
     @UrlValidator
     @Column(name = "long_url", length = 2048, nullable = false)
     private String longUrl;
+
+    @Transient
+    @Size(min = 3, max = 8, message = "Custom alias must be between 3 and 8 characters")
+    @Pattern(
+            regexp = "^[a-zA-Z0-9_-]*$",
+            message = "Custom alias can only contain letters, numbers, hyphens, and underscores")
+    private String customAlias;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -65,6 +73,18 @@ public class ShortenedUrl {
 
     public void setExpiresAt(LocalDateTime expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public String getCustomAlias() {
+        return customAlias;
+    }
+
+    public void setCustomAlias(String customAlias) {
+        this.customAlias = customAlias;
+    }
+
+    public boolean hasCustomAlias() {
+        return customAlias != null && !customAlias.trim().isEmpty();
     }
 
     public boolean isExpired() {

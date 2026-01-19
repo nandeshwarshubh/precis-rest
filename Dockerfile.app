@@ -9,13 +9,13 @@ COPY build.gradle settings.gradle ./
 COPY gradle ./gradle
 
 # Download dependencies (cached layer)
-RUN gradle dependencies --no-daemon || true
+RUN gradle dependencies --no-daemon --configuration-cache || true
 
 # Copy source code
 COPY src ./src
 
 # Build the application
-RUN gradle clean build -x test --no-daemon
+RUN gradle clean build -x test --no-daemon --configuration-cache
 
 # Stage 2: Create the runtime image
 FROM eclipse-temurin:25-jre-alpine

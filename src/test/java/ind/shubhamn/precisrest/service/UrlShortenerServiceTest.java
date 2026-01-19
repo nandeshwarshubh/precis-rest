@@ -29,7 +29,7 @@ public class UrlShortenerServiceTest {
         when(shortenedUrl.getLongUrl()).thenReturn("http://www.google.com");
         when(shortenedUrl.getShortUrl()).thenReturn("GRNHv-Vd");
         when(urlShortenerDAO.save(shortenedUrl)).thenReturn(shortenedUrl);
-        urlShortenerService.shortenUrl("http://www.google.com");
+        urlShortenerService.shortenUrl("http://www.google.com", null);
     }
 
     @Test

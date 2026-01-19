@@ -22,15 +22,22 @@ public class UrlShortenerController {
 
     @Autowired private UrlShortenerService urlShortenerService;
 
+    /**
+     * Creates a shortened URL with optional custom alias
+     *
+     * @param shortenedUrl The request containing longUrl and optional customAlias
+     * @return ResponseEntity with the shortened URL details
+     */
     @PostMapping(value = "shorten")
     public ResponseEntity<ShortenedUrl> createShortenedUrl(
-            @Valid @RequestBody ShortenedUrl shortenedUrl) {
-        try {
-            shortenedUrl.setShortUrl(urlShortenerService.shortenUrl(shortenedUrl.getLongUrl()));
-            return ResponseEntityHelper.successResponseEntity(shortenedUrl);
-        } catch (Exception e) {
-            return ResponseEntityHelper.failureResponseEntity(e, null);
-        }
+            @Valid @RequestBody ShortenedUrl shortenedUrl) throws Exception {
+
+        String shortUrl =
+                urlShortenerService.shortenUrl(
+                        shortenedUrl.getLongUrl(), shortenedUrl.getCustomAlias());
+
+        shortenedUrl.setShortUrl(shortUrl);
+        return ResponseEntityHelper.successResponseEntity(shortenedUrl);
     }
 
     @PostMapping(value = "long")

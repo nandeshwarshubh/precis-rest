@@ -1,6 +1,7 @@
 package ind.shubhamn.precisrest.rest;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -42,7 +43,7 @@ public class UrlShortenerControllerTest {
     public void createShortenedUrlTest() throws Exception {
         ShortenedUrl shortenedUrl = new ShortenedUrl();
         shortenedUrl.setLongUrl("http://www.google.com");
-        when(urlShortenerService.shortenUrl(any())).thenReturn("GRNHv-Vd");
+        when(urlShortenerService.shortenUrl(any(), isNull())).thenReturn("GRNHv-Vd");
         String url = "http://localhost:8080/app/rest/shorten";
         String bodyJson = new ObjectMapper().writeValueAsString(shortenedUrl);
         MvcResult result =
@@ -50,7 +51,7 @@ public class UrlShortenerControllerTest {
                         .andDo(print())
                         .andExpect(status().isOk())
                         .andReturn();
-        verify(urlShortenerService, times(1)).shortenUrl(any());
+        verify(urlShortenerService, times(1)).shortenUrl(any(), isNull());
         shortenedUrl.setShortUrl("GRNHv-Vd");
         String expectedResult = new ObjectMapper().writeValueAsString(shortenedUrl);
         String testResult = result.getResponse().getContentAsString();
@@ -61,13 +62,13 @@ public class UrlShortenerControllerTest {
     public void createShortenedUrlWithExceptionTest() throws Exception {
         ShortenedUrl shortenedUrl = new ShortenedUrl();
         shortenedUrl.setLongUrl("http://www.google.com"); // Set a valid URL to pass validation
-        when(urlShortenerService.shortenUrl(any())).thenThrow(new RuntimeException());
+        when(urlShortenerService.shortenUrl(any(), isNull())).thenThrow(new RuntimeException());
         String url = "http://localhost:8080/app/rest/shorten";
         String bodyJson = new ObjectMapper().writeValueAsString(shortenedUrl);
         mockMvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(bodyJson))
                 .andDo(print())
                 .andExpect(status().is5xxServerError());
-        verify(urlShortenerService, times(1)).shortenUrl(any());
+        verify(urlShortenerService, times(1)).shortenUrl(any(), isNull());
     }
 
     @Test
