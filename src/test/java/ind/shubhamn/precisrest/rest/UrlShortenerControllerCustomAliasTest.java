@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import ind.shubhamn.precisrest.constants.ErrorCodes;
+import ind.shubhamn.precisrest.dto.ShortenUrlRequestDTO;
 import ind.shubhamn.precisrest.exception.ShortUrlAlreadyExistsException;
 import ind.shubhamn.precisrest.model.ShortenedUrl;
 import ind.shubhamn.precisrest.service.UrlShortenerService;
@@ -44,12 +46,16 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_WithCustomAlias_Success() throws Exception {
         // Arrange
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
         request.setCustomAlias("my-link");
 
+        ShortenedUrl entity = new ShortenedUrl();
+        entity.setShortUrl("my-link");
+        entity.setLongUrl("https://www.example.com");
+
         when(urlShortenerService.shortenUrl(eq("https://www.example.com"), eq("my-link")))
-                .thenReturn("my-link");
+                .thenReturn(entity);
 
         // Act & Assert
         mockMvc.perform(
@@ -68,11 +74,15 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_WithoutCustomAlias_Success() throws Exception {
         // Arrange
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
 
+        ShortenedUrl entity = new ShortenedUrl();
+        entity.setShortUrl("abc12345");
+        entity.setLongUrl("https://www.example.com");
+
         when(urlShortenerService.shortenUrl(eq("https://www.example.com"), eq(null)))
-                .thenReturn("abc12345");
+                .thenReturn(entity);
 
         // Act & Assert
         mockMvc.perform(
@@ -90,7 +100,7 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_CustomAliasAlreadyExists_ReturnsConflict() throws Exception {
         // Arrange
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
         request.setCustomAlias("existing");
 
@@ -104,7 +114,7 @@ public class UrlShortenerControllerCustomAliasTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("ALIAS_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.error").value(ErrorCodes.ALIAS_ALREADY_EXISTS))
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.status").value(409));
 
@@ -115,7 +125,7 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_InvalidCustomAlias_ReturnsBadRequest() throws Exception {
         // Arrange - custom alias with invalid characters
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
         request.setCustomAlias("invalid!"); // Contains special chars
 
@@ -126,7 +136,7 @@ public class UrlShortenerControllerCustomAliasTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.error").value(ErrorCodes.VALIDATION_ERROR));
 
         verify(urlShortenerService, never()).shortenUrl(any(), any());
     }
@@ -134,7 +144,7 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_CustomAliasTooShort_ReturnsBadRequest() throws Exception {
         // Arrange - custom alias too short (less than 3 characters)
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
         request.setCustomAlias("ab"); // Only 2 characters
 
@@ -152,7 +162,7 @@ public class UrlShortenerControllerCustomAliasTest {
     @Test
     public void testCreateShortenedUrl_CustomAliasTooLong_ReturnsBadRequest() throws Exception {
         // Arrange - custom alias too long (more than 8 characters)
-        ShortenedUrl request = new ShortenedUrl();
+        ShortenUrlRequestDTO request = new ShortenUrlRequestDTO();
         request.setLongUrl("https://www.example.com");
         request.setCustomAlias("verylongg"); // 9 characters, exceeds 8 char limit
 
@@ -163,7 +173,7 @@ public class UrlShortenerControllerCustomAliasTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.error").value(ErrorCodes.VALIDATION_ERROR));
 
         verify(urlShortenerService, never()).shortenUrl(any(), any());
     }

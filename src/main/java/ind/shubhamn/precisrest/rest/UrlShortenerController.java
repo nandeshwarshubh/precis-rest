@@ -1,5 +1,11 @@
 package ind.shubhamn.precisrest.rest;
 
+import ind.shubhamn.precisrest.constants.ErrorCodes;
+import ind.shubhamn.precisrest.dto.GetLongUrlRequestDTO;
+import ind.shubhamn.precisrest.dto.GetLongUrlResponseDTO;
+import ind.shubhamn.precisrest.dto.ShortenUrlRequestDTO;
+import ind.shubhamn.precisrest.dto.ShortenUrlResponseDTO;
+import ind.shubhamn.precisrest.mapper.UrlMapper;
 import ind.shubhamn.precisrest.model.ShortenedUrl;
 import ind.shubhamn.precisrest.service.UrlShortenerService;
 import jakarta.validation.Valid;
@@ -18,35 +24,37 @@ import org.springframework.web.context.WebApplicationContext;
 @RequestMapping("app/rest")
 public class UrlShortenerController {
 
-    private static final String errorCode = "NOT_FOUND";
-
     @Autowired private UrlShortenerService urlShortenerService;
+
+    @Autowired private UrlMapper urlMapper;
 
     /**
      * Creates a shortened URL with optional custom alias
      *
-     * @param shortenedUrl The request containing longUrl and optional customAlias
+     * @param requestDto The request containing longUrl and optional customAlias
      * @return ResponseEntity with the shortened URL details
      */
     @PostMapping(value = "shorten")
-    public ResponseEntity<ShortenedUrl> createShortenedUrl(
-            @Valid @RequestBody ShortenedUrl shortenedUrl) throws Exception {
+    public ResponseEntity<ShortenUrlResponseDTO> createShortenedUrl(
+            @Valid @RequestBody ShortenUrlRequestDTO requestDto) throws Exception {
 
-        String shortUrl =
+        ShortenedUrl entity =
                 urlShortenerService.shortenUrl(
-                        shortenedUrl.getLongUrl(), shortenedUrl.getCustomAlias());
+                        requestDto.getLongUrl(), requestDto.getCustomAlias());
 
-        shortenedUrl.setShortUrl(shortUrl);
-        return ResponseEntityHelper.successResponseEntity(shortenedUrl);
+        ShortenUrlResponseDTO responseDto = urlMapper.toShortenUrlResponseDto(entity);
+        return ResponseEntity.ok(responseDto);
     }
 
     @PostMapping(value = "long")
-    public ResponseEntity<ShortenedUrl> getLongUrl(@RequestBody ShortenedUrl shortenedUrl) {
+    public ResponseEntity<GetLongUrlResponseDTO> getLongUrl(
+            @Valid @RequestBody GetLongUrlRequestDTO requestDto) {
         try {
-            shortenedUrl.setLongUrl(urlShortenerService.getLongUrl(shortenedUrl.getShortUrl()));
-            return ResponseEntityHelper.successResponseEntity(shortenedUrl);
+            ShortenedUrl entity = urlShortenerService.getLongUrl(requestDto.getShortUrl());
+            GetLongUrlResponseDTO responseDto = urlMapper.toGetLongUrlResponseDto(entity);
+            return ResponseEntity.ok(responseDto);
         } catch (NoSuchElementException e) {
-            return ResponseEntityHelper.failureResponseEntity(e, errorCode);
+            return ResponseEntityHelper.failureResponseEntity(e, ErrorCodes.NOT_FOUND);
         } catch (Exception e) {
             return ResponseEntityHelper.failureResponseEntity(e, null);
         }

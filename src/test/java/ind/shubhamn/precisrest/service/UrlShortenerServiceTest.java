@@ -1,5 +1,7 @@
 package ind.shubhamn.precisrest.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import ind.shubhamn.precisrest.dao.UrlShortenerDAO;
@@ -9,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 public class UrlShortenerServiceTest {
@@ -25,18 +26,36 @@ public class UrlShortenerServiceTest {
 
     @Test
     public void shortenUrlTest() throws Exception {
-        ShortenedUrl shortenedUrl = Mockito.mock(ShortenedUrl.class);
-        when(shortenedUrl.getLongUrl()).thenReturn("http://www.google.com");
-        when(shortenedUrl.getShortUrl()).thenReturn("GRNHv-Vd");
-        when(urlShortenerDAO.save(shortenedUrl)).thenReturn(shortenedUrl);
-        urlShortenerService.shortenUrl("http://www.google.com", null);
+        // Arrange
+        String longUrl = "http://www.google.com";
+        when(urlShortenerDAO.save(any(ShortenedUrl.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        ShortenedUrl result = urlShortenerService.shortenUrl(longUrl, null);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getShortUrl());
+        assertEquals(longUrl, result.getLongUrl());
+        assertEquals(8, result.getShortUrl().length());
     }
 
     @Test
     public void getLongUrlTest() throws Exception {
-        ShortenedUrl shortenedUrl = Mockito.mock(ShortenedUrl.class);
-        Optional<ShortenedUrl> shortenedUrlOptional = Optional.of((ShortenedUrl) shortenedUrl);
-        when(urlShortenerDAO.findByShortUrl("GRNHv-Vd")).thenReturn(shortenedUrlOptional);
-        urlShortenerService.getLongUrl("GRNHv-Vd");
+        // Arrange
+        ShortenedUrl shortenedUrl = new ShortenedUrl();
+        shortenedUrl.setShortUrl("GRNHv-Vd");
+        shortenedUrl.setLongUrl("http://www.google.com");
+
+        when(urlShortenerDAO.findByShortUrl("GRNHv-Vd")).thenReturn(Optional.of(shortenedUrl));
+
+        // Act
+        ShortenedUrl result = urlShortenerService.getLongUrl("GRNHv-Vd");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("GRNHv-Vd", result.getShortUrl());
+        assertEquals("http://www.google.com", result.getLongUrl());
     }
 }

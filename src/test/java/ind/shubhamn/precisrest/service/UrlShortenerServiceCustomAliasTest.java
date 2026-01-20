@@ -36,10 +36,12 @@ public class UrlShortenerServiceCustomAliasTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        String result = urlShortenerService.shortenUrl(longUrl, customAlias);
+        ShortenedUrl result = urlShortenerService.shortenUrl(longUrl, customAlias);
 
         // Assert
-        assertEquals(customAlias, result);
+        assertNotNull(result);
+        assertEquals(customAlias, result.getShortUrl());
+        assertEquals(longUrl, result.getLongUrl());
         verify(urlShortenerDAO, times(1)).findByShortUrl(customAlias);
         verify(urlShortenerDAO, times(1)).save(any(ShortenedUrl.class));
     }
@@ -81,13 +83,17 @@ public class UrlShortenerServiceCustomAliasTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        String result1 = urlShortenerService.shortenUrl(longUrl1, customAlias1);
-        String result2 = urlShortenerService.shortenUrl(longUrl2, customAlias2);
+        ShortenedUrl result1 = urlShortenerService.shortenUrl(longUrl1, customAlias1);
+        ShortenedUrl result2 = urlShortenerService.shortenUrl(longUrl2, customAlias2);
 
         // Assert
-        assertEquals(customAlias1, result1);
-        assertEquals(customAlias2, result2);
-        assertNotEquals(result1, result2);
+        assertNotNull(result1);
+        assertNotNull(result2);
+        assertEquals(customAlias1, result1.getShortUrl());
+        assertEquals(customAlias2, result2.getShortUrl());
+        assertEquals(longUrl1, result1.getLongUrl());
+        assertEquals(longUrl2, result2.getLongUrl());
+        assertNotEquals(result1.getShortUrl(), result2.getShortUrl());
         verify(urlShortenerDAO, times(2)).save(any(ShortenedUrl.class));
     }
 
@@ -100,11 +106,13 @@ public class UrlShortenerServiceCustomAliasTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        String result = urlShortenerService.shortenUrl(longUrl, null);
+        ShortenedUrl result = urlShortenerService.shortenUrl(longUrl, null);
 
         // Assert
         assertNotNull(result);
-        assertEquals(8, result.length()); // Auto-generated URLs are 8 characters
+        assertNotNull(result.getShortUrl());
+        assertEquals(8, result.getShortUrl().length()); // Auto-generated URLs are 8 characters
+        assertEquals(longUrl, result.getLongUrl());
         verify(urlShortenerDAO, times(1)).save(any(ShortenedUrl.class));
     }
 }
