@@ -93,12 +93,6 @@ public class WelcomeController {
                                       <span class="text-xl font-bold tracking-tighter uppercase text-primary">Precis</span>
                                       </div>
                                       <nav class="hidden md:flex items-center gap-8 uppercase text-xs font-bold tracking-widest text-primary/70">
-                                      <a class="hover:text-primary transition-colors" href="#">Endpoints</a>
-                                      <a class="hover:text-primary transition-colors" href="#">Spec</a>
-                                      <a class="hover:text-primary transition-colors" href="#">Monitor</a>
-                                      <a class="flex items-center gap-1 hover:text-primary transition-colors" href="#">
-                                                          GitHub <span class="material-symbols-outlined text-xs">open_in_new</span>
-                                      </a>
                                       </nav>
                                       <div class="flex items-center gap-4">
                                       <div class="px-3 py-1 bg-primary/10 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-tighter">
