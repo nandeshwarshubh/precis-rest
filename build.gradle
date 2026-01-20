@@ -55,8 +55,6 @@ spotless {
 		removeUnusedImports()
 		trimTrailingWhitespace()
 		endWithNewline()
-		// Add license header if needed
-		// licenseHeaderFile 'spotless.license.java'
 	}
 }
 

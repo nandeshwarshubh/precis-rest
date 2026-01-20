@@ -115,7 +115,7 @@ public class UrlShortenerControllerTest {
         String bodyJson = new ObjectMapper().writeValueAsString(request);
         mockMvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(bodyJson))
                 .andDo(print())
-                .andExpect(status().is5xxServerError());
+                .andExpect(status().isNotFound());
         verify(urlShortenerService, times(1)).getLongUrl(any());
     }
 }
