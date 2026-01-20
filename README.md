@@ -31,14 +31,18 @@
 **Precis** - A production-grade URL shortening service
 
 ### Business Summary
-Precis is a RESTful microservice that provides URL shortening capabilities, allowing users to convert long URLs into compact, shareable short URLs. The service generates deterministic short URLs using SHA-256 hashing and Base64 encoding, ensuring consistent results for identical input URLs.
+Precis is a RESTful microservice that provides URL shortening capabilities, allowing users to convert long URLs into compact, shareable short URLs. The service generates deterministic short URLs using SHA-256 hashing and Base64 encoding, ensuring consistent results for identical input URLs. Additionally, users can specify custom aliases for personalized short URLs, with automatic validation to prevent duplicates.
 
 ### Key Responsibilities
-- Generate short URLs from long URLs using cryptographic hashing
-- Store URL mappings persistently in PostgreSQL database
+- Generate short URLs from long URLs using cryptographic hashing (SHA-256 + Base64)
+- Support custom aliases for personalized short URLs
+- Validate custom alias availability and prevent duplicates
+- Store URL mappings persistently in PostgreSQL database with timestamps
 - Retrieve original URLs from short URL identifiers
 - Provide RESTful API endpoints for URL operations
 - Handle concurrent requests with request-scoped controllers
+- Comprehensive logging with correlation IDs for request tracing
+- Input validation and error handling with proper HTTP status codes
 
 ### Target Users
 - **Frontend Applications**: Web and mobile clients requiring URL shortening
@@ -122,13 +126,17 @@ Precis follows a **Layered Architecture** pattern with clear separation of conce
 | **Web**              | Spring Web MVC                      | 7.0.1   | REST API implementation                   |
 | **ORM**              | Hibernate / JPA                     | 7.1.8   | Object-relational mapping                 |
 | **Database**         | PostgreSQL                          | 18.1    | Primary data store                        |
+| **Migration**        | Flyway                              | 11.1.0  | Database schema versioning                |
 | **Build Tool**       | Gradle                              | 9.1     | Dependency management & build automation  |
 | **Testing**          | JUnit 5                             | 5.11.x  | Unit testing framework                    |
 | **Mocking**          | Mockito                             | 5.14.x  | Test mocking framework                    |
 | **Test DB**          | H2 Database                         | 2.3.x   | In-memory database for testing            |
 | **Containerization** | Docker / Docker Compose             | 3.8     | Local development environment             |
 | **JSON Processing**  | Jackson                             | 3.0.x   | JSON serialization/deserialization        |
+| **Validation**       | Hibernate Validator (Bean Validation)| 8.0.x  | Input validation (JSR-380)                |
+| **Mapping**          | MapStruct                           | 1.6.3   | Entity-DTO mapping                        |
 | **Logging**          | SLF4J / Logback                     | 2.0.x   | Application logging                       |
+| **Tracing**          | Micrometer Tracing + Zipkin         | 1.4.x   | Distributed tracing                       |
 
 ---
 
@@ -139,8 +147,26 @@ Precis follows a **Layered Architecture** pattern with clear separation of conce
 ```
 ind.shubhamn.precisrest
 ├── PrecisApplication.java              # Spring Boot entry point
+├── constants/                           # Application constants
+│   └── ErrorCodes.java                 # Error code definitions
+├── dto/                                 # Data Transfer Objects
+│   ├── ErrorResponse.java              # Error response DTO
+│   ├── GetLongUrlRequestDTO.java       # Get long URL request
+│   ├── GetLongUrlResponseDTO.java      # Get long URL response
+│   ├── ShortenUrlRequestDTO.java       # Shorten URL request
+│   └── ShortenUrlResponseDTO.java      # Shorten URL response
+├── exception/                           # Exception handling
+│   ├── GlobalExceptionHandler.java     # Global exception handler
+│   └── ShortUrlAlreadyExistsException.java # Custom exception
+├── logging/                             # Logging infrastructure
+│   └── RequestLoggingFilter.java       # Request/response logging with correlation IDs
+├── mapper/                              # Object mapping
+│   └── UrlMapper.java                  # MapStruct entity-DTO mapper
+├── model/                               # Domain entities
+│   └── ShortenedUrl.java               # URL entity (JPA)
 ├── rest/                                # Presentation layer
 │   ├── UrlShortenerController.java     # REST endpoints
+│   ├── WelcomeController.java          # Welcome page endpoint
 │   ├── ResponseEntityHelper.java       # Response utilities
 │   └── config/                          # Web configuration
 │       ├── RestConfig.java             # CORS configuration
@@ -152,24 +178,36 @@ ind.shubhamn.precisrest
 │   └── config/                          # Data configuration
 │       ├── DatabaseConfig.java         # Database properties
 │       └── JpaConfiguration.java       # JPA/Hibernate setup
-└── model/                               # Domain entities
-    └── ShortenedUrl.java               # URL entity
+└── validation/                          # Input validation
+    ├── UrlValidator.java               # URL validation interface
+    └── UrlValidatorImpl.java           # URL validation implementation
 ```
 
 ### Module Responsibilities
 
 #### **1. Presentation Layer (`rest`)**
 - **UrlShortenerController**: Exposes REST endpoints for URL operations
+  - `POST /app/rest/shorten` - Create shortened URL
+  - `POST /app/rest/long` - Retrieve original URL
+  - Request-scoped for thread safety
+  - Comprehensive logging at all levels (TRACE, DEBUG, INFO)
+- **WelcomeController**: Serves welcome page at root endpoint
+  - `GET /` - Returns HTML welcome page
 - **ResponseEntityHelper**: Standardizes HTTP responses (success/error)
+  - Success responses with 200 OK or custom status
+  - Error responses with appropriate HTTP status codes
+  - Comprehensive logging for all responses
 - **RestConfig**: Configures CORS policies for cross-origin requests
 - **SimpleCorsFilter**: Implements CORS filtering at servlet level
 
 #### **2. Service Layer (`service`)**
 - **UrlShortenerService**:
   - Implements URL shortening algorithm (SHA-256 + Base64)
+  - Supports custom aliases for short URLs
+  - Validates custom alias availability
   - Orchestrates business logic
   - Manages transactions
-  - Validates input data
+  - Comprehensive logging at all levels
 
 #### **3. Data Access Layer (`dao`)**
 - **UrlShortenerDAO**: Spring Data JPA repository interface
@@ -181,7 +219,54 @@ ind.shubhamn.precisrest
 #### **4. Domain Layer (`model`)**
 - **ShortenedUrl**: JPA entity representing URL mappings
   - Maps to `URL_SHORTEN` table
-  - Contains `shortUrl` (PK) and `longUrl` fields
+  - Fields: `shortUrl` (PK), `longUrl`, `createdAt`, `expiresAt`
+  - Automatic timestamp management
+
+#### **5. DTO Layer (`dto`)**
+- **ShortenUrlRequestDTO**: Request for creating shortened URL
+  - Validates `longUrl` (required, max 2048 chars, valid URL format)
+  - Optional `customAlias` field
+- **ShortenUrlResponseDTO**: Response with shortened URL details
+- **GetLongUrlRequestDTO**: Request for retrieving original URL
+  - Validates `shortUrl` (required, not blank)
+- **GetLongUrlResponseDTO**: Response with original URL details
+- **ErrorResponse**: Standardized error response format
+  - Fields: `errorCode`, `message`, `statusCode`
+
+#### **6. Exception Handling (`exception`)**
+- **GlobalExceptionHandler**: Centralized exception handling
+  - Handles `ShortUrlAlreadyExistsException` (409 Conflict)
+  - Handles `MethodArgumentNotValidException` (400 Bad Request)
+  - Handles `NoSuchElementException` (404 Not Found)
+  - Handles generic `Exception` (500 Internal Server Error)
+  - Comprehensive logging at all levels
+- **ShortUrlAlreadyExistsException**: Custom exception for duplicate aliases
+
+#### **7. Validation Layer (`validation`)**
+- **UrlValidator**: Interface for URL validation
+- **UrlValidatorImpl**: Implementation of URL validation logic
+  - Validates URL format and structure
+
+#### **8. Logging Infrastructure (`logging`)**
+- **RequestLoggingFilter**: Request/response logging filter
+  - Generates correlation IDs for request tracing
+  - Logs incoming requests with method, URI, remote address
+  - Logs outgoing responses with status code and duration
+  - Uses MDC (Mapped Diagnostic Context) for correlation ID propagation
+
+#### **9. Mapper Layer (`mapper`)**
+- **UrlMapper**: MapStruct interface for entity-DTO mapping
+  - `toEntity()` - Converts DTO to entity
+  - `toShortenUrlResponseDto()` - Converts entity to response DTO
+  - `toGetLongUrlResponseDto()` - Converts entity to response DTO
+  - Auto-generated implementation at compile time
+
+#### **10. Constants (`constants`)**
+- **ErrorCodes**: Centralized error code definitions
+  - `NOT_FOUND` - Resource not found
+  - `ALIAS_ALREADY_EXISTS` - Custom alias already in use
+  - `VALIDATION_ERROR` - Input validation failure
+  - `INTERNAL_SERVER_ERROR` - Unexpected server error
 
 ---
 
@@ -194,24 +279,68 @@ http://localhost:8080/app/rest
 
 ### Endpoints
 
-| Method | Endpoint       | Description                    | Request Body          | Response Body         |
-|--------|----------------|--------------------------------|-----------------------|-----------------------|
-| POST   | `/shorten`     | Create a shortened URL         | `ShortenedUrl` (JSON) | `ShortenedUrl` (JSON) |
-| POST   | `/long`        | Retrieve original URL          | `ShortenedUrl` (JSON) | `ShortenedUrl` (JSON) |
+| Method | Endpoint       | Description                    | Request Body                | Response Body                |
+|--------|----------------|--------------------------------|-----------------------------|------------------------------|
+| GET    | `/`            | Welcome page                   | None                        | HTML                         |
+| POST   | `/shorten`     | Create a shortened URL         | `ShortenUrlRequestDTO`      | `ShortenUrlResponseDTO`      |
+| POST   | `/long`        | Retrieve original URL          | `GetLongUrlRequestDTO`      | `GetLongUrlResponseDTO`      |
 
 ### Request/Response Models
 
-#### ShortenedUrl Model
+#### ShortenUrlRequestDTO
 ```json
 {
-  "shortUrl": "string (8 chars)",
-  "longUrl": "string (max 2048 chars)"
+  "longUrl": "string (required, max 2048 chars, valid URL format)",
+  "customAlias": "string (optional, custom short URL alias)"
+}
+```
+
+**Validation Rules:**
+- `longUrl`: Required, not blank, max 2048 characters, must be valid URL format
+- `customAlias`: Optional, if provided will be used as the short URL instead of auto-generated hash
+
+#### ShortenUrlResponseDTO
+```json
+{
+  "shortUrl": "string (8 chars or custom alias)",
+  "longUrl": "string (original URL)",
+  "createdAt": "timestamp (ISO 8601 format)",
+  "expiresAt": "timestamp (ISO 8601 format, nullable)"
+}
+```
+
+#### GetLongUrlRequestDTO
+```json
+{
+  "shortUrl": "string (required, not blank)"
+}
+```
+
+**Validation Rules:**
+- `shortUrl`: Required, not blank
+
+#### GetLongUrlResponseDTO
+```json
+{
+  "shortUrl": "string (short URL identifier)",
+  "longUrl": "string (original URL)",
+  "createdAt": "timestamp (ISO 8601 format)",
+  "expiresAt": "timestamp (ISO 8601 format, nullable)"
+}
+```
+
+#### ErrorResponse
+```json
+{
+  "errorCode": "string (error code constant)",
+  "message": "string (error description)",
+  "statusCode": "integer (HTTP status code)"
 }
 ```
 
 ### API Examples
 
-#### 1. Create Shortened URL
+#### 1. Create Shortened URL (Auto-Generated)
 
 **Request:**
 ```bash
@@ -226,20 +355,44 @@ curl -X POST http://localhost:8080/app/rest/shorten \
 ```json
 {
   "shortUrl": "GRNHv-Vd",
-  "longUrl": "https://www.example.com/very/long/url/path?param1=value1&param2=value2"
+  "longUrl": "https://www.example.com/very/long/url/path?param1=value1&param2=value2",
+  "createdAt": "2026-01-21T00:00:00Z",
+  "expiresAt": null
 }
 ```
 
-**Error Response (500 Internal Server Error):**
+#### 2. Create Shortened URL (Custom Alias)
+
+**Request:**
+```bash
+curl -X POST http://localhost:8080/app/rest/shorten \
+  -H "Content-Type: application/json" \
+  -d '{
+    "longUrl": "https://www.example.com/very/long/url/path",
+    "customAlias": "my-custom-url"
+  }'
+```
+
+**Success Response (200 OK):**
 ```json
 {
-  "id": "1704380400000",
-  "message": "Error message details",
-  "errorCode": null
+  "shortUrl": "my-custom-url",
+  "longUrl": "https://www.example.com/very/long/url/path",
+  "createdAt": "2026-01-21T00:00:00Z",
+  "expiresAt": null
 }
 ```
 
-#### 2. Retrieve Original URL
+**Error Response - Alias Already Exists (409 Conflict):**
+```json
+{
+  "errorCode": "ALIAS_ALREADY_EXISTS",
+  "message": "Short URL alias 'my-custom-url' already exists",
+  "statusCode": 409
+}
+```
+
+#### 3. Retrieve Original URL
 
 **Request:**
 ```bash
@@ -254,31 +407,58 @@ curl -X POST http://localhost:8080/app/rest/long \
 ```json
 {
   "shortUrl": "GRNHv-Vd",
-  "longUrl": "https://www.example.com/very/long/url/path?param1=value1&param2=value2"
+  "longUrl": "https://www.example.com/very/long/url/path?param1=value1&param2=value2",
+  "createdAt": "2026-01-21T00:00:00Z",
+  "expiresAt": null
 }
 ```
 
-**Error Response - Not Found (500 Internal Server Error):**
+**Error Response - Not Found (404 Not Found):**
 ```json
 {
-  "id": "1704380400000",
+  "errorCode": "NOT_FOUND",
   "message": "No value present",
-  "errorCode": "NOT_FOUND"
+  "statusCode": 404
+}
+```
+
+#### 4. Validation Error Example
+
+**Request:**
+```bash
+curl -X POST http://localhost:8080/app/rest/shorten \
+  -H "Content-Type: application/json" \
+  -d '{
+    "longUrl": ""
+  }'
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "errorCode": "VALIDATION_ERROR",
+  "message": "Validation failed: longUrl - must not be blank; ",
+  "statusCode": 400
 }
 ```
 
 ### HTTP Status Codes
 
-| Status Code | Description                                      |
-|-------------|--------------------------------------------------|
-| 200         | Success - Request processed successfully         |
-| 500         | Internal Server Error - Exception occurred       |
+| Status Code | Description                                      | Error Code               |
+|-------------|--------------------------------------------------|--------------------------|
+| 200         | Success - Request processed successfully         | N/A                      |
+| 400         | Bad Request - Validation error                   | `VALIDATION_ERROR`       |
+| 404         | Not Found - Short URL not found                  | `NOT_FOUND`              |
+| 409         | Conflict - Custom alias already exists           | `ALIAS_ALREADY_EXISTS`   |
+| 500         | Internal Server Error - Unexpected error         | `INTERNAL_SERVER_ERROR`  |
 
 ### Validation & Error Handling
 
-- **Input Validation**: Currently minimal; relies on database constraints
-- **Error Responses**: Standardized JSON format with timestamp, message, and error code
-- **Exception Handling**: Global exception handling via `ResponseEntityHelper`
+- **Input Validation**: Bean Validation (JSR-380) with comprehensive constraints on all DTOs
+- **URL Validation**: Custom `UrlValidator` implementation for URL format validation
+- **Error Responses**: Standardized JSON format with error code, message, and HTTP status code
+- **Exception Handling**: Global exception handling via `@RestControllerAdvice` in `GlobalExceptionHandler`
+- **Correlation IDs**: Request tracing with correlation IDs for debugging and monitoring
 
 ---
 
@@ -362,12 +542,14 @@ This allows configuration via:
 ### Entity-Relationship Model
 
 ```
-┌─────────────────────────────────┐
-│        URL_SHORTEN              │
-├─────────────────────────────────┤
-│ short_url  VARCHAR(8)    [PK]   │
-│ long_url   VARCHAR(2048)        │
-└─────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│           URL_SHORTEN                    │
+├──────────────────────────────────────────┤
+│ short_url   VARCHAR(255)         [PK]    │
+│ long_url    VARCHAR(2048)        [NOT NULL] │
+│ created_at  TIMESTAMP            [NOT NULL] │
+│ expires_at  TIMESTAMP            [NULL]  │
+└──────────────────────────────────────────┘
 ```
 
 ### Table Schema
@@ -376,8 +558,10 @@ This allows configuration via:
 
 | Column     | Type         | Constraints | Description                    |
 |------------|--------------|-------------|--------------------------------|
-| short_url  | VARCHAR(8)   | PRIMARY KEY | 8-character short URL identifier |
+| short_url  | VARCHAR(255) | PRIMARY KEY | Short URL identifier (8 chars or custom alias) |
 | long_url   | VARCHAR(2048)| NOT NULL    | Original long URL              |
+| created_at | TIMESTAMP    | NOT NULL    | Timestamp when URL was created |
+| expires_at | TIMESTAMP    | NULL        | Optional expiration timestamp  |
 
 ### JPA Entity Mapping
 
@@ -386,11 +570,22 @@ This allows configuration via:
 @Table(name = "URL_SHORTEN")
 public class ShortenedUrl {
     @Id
-    @Column(name = "short_url", length = 8)
+    @Column(name = "short_url", length = 255)
     private String shortUrl;
 
-    @Column(name = "long_url", length = 2048)
+    @Column(name = "long_url", length = 2048, nullable = false)
     private String longUrl;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }
 ```
 
@@ -398,23 +593,38 @@ public class ShortenedUrl {
 
 - **Primary Key Index**: Automatic index on `short_url` (PK)
 - **Performance**: O(1) lookup for short URL retrieval
+- **Custom Alias Support**: Variable-length short URLs (up to 255 chars)
 - **Future Consideration**: Add index on `long_url` for duplicate detection
 
 ### Database Migration Approach
 
-**Current**: Hibernate Auto-DDL (`hibernate.hbm2ddl.auto=update`)
-- Automatically creates/updates schema on application startup
-- Suitable for development and small-scale deployments
+**Current**: Flyway for versioned schema migrations
+- Migration scripts in `src/main/resources/db/migration/`
+- Automatic schema versioning and migration on startup
+- Rollback capabilities and audit trail
+- Production-ready approach
 
-**Recommended for Production**:
-- **Flyway** or **Liquibase** for versioned schema migrations
-- Provides rollback capabilities and audit trail
-- Enables zero-downtime deployments
+**Migration Files**:
+```
+db/migration/
+└── V1__create_url_shorten_table.sql
+```
+
+**Sample Migration**:
+```sql
+CREATE TABLE URL_SHORTEN (
+    short_url VARCHAR(255) PRIMARY KEY,
+    long_url VARCHAR(2048) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP
+);
+```
 
 ### Data Retention
 
-- **Current**: No TTL or expiration mechanism
-- **Future Enhancement**: Add `created_at` and `expires_at` columns for URL lifecycle management
+- **Current**: Timestamp tracking with `created_at` and `expires_at` columns
+- **Lifecycle Management**: Optional expiration support
+- **Future Enhancement**: Implement scheduled cleanup job for expired URLs
 
 ---
 
@@ -473,18 +683,47 @@ Roles:
 ✅ **CORS Protection**: Configured to allow specific origins
 ✅ **Request Scoping**: Controllers are request-scoped to prevent state leakage
 ✅ **SQL Injection Protection**: JPA/Hibernate parameterized queries
-✅ **Input Validation**: Database-level constraints (length limits)
+✅ **Input Validation**: Bean Validation (JSR-380) with comprehensive constraints
+✅ **URL Validation**: Custom URL validator to prevent malicious URLs
+✅ **Request Logging**: Correlation IDs for request tracing and audit trail
+✅ **Exception Handling**: Centralized error handling with proper HTTP status codes
+
+### Input Validation
+
+**Bean Validation (JSR-380)** implemented across all DTOs:
+
+```java
+public class ShortenUrlRequestDTO {
+    @NotBlank(message = "Long URL must not be blank")
+    @Size(max = 2048, message = "Long URL must not exceed 2048 characters")
+    @Pattern(regexp = "^https?://.*", message = "Long URL must be a valid URL")
+    private String longUrl;
+
+    @Size(max = 255, message = "Custom alias must not exceed 255 characters")
+    private String customAlias;
+}
+
+public class GetLongUrlRequestDTO {
+    @NotBlank(message = "Short URL must not be blank")
+    private String shortUrl;
+}
+```
+
+**Custom URL Validation**:
+- `UrlValidator` interface with `UrlValidatorImpl` implementation
+- Validates URL format and structure
+- Prevents malicious URLs and invalid formats
 
 ### Security Recommendations
 
 🔒 **For Production Deployment**:
 1. Enable Spring Security
-2. Add input validation and sanitization
-3. Use HTTPS/TLS for all communications
-4. Implement API key rotation mechanism
-5. Add request logging and monitoring
-6. Implement CAPTCHA for public endpoints
-8. Add URL validation to prevent malicious URLs
+2. Use HTTPS/TLS for all communications
+3. Implement API key rotation mechanism
+4. Implement CAPTCHA for public endpoints
+5. Add rate limiting to prevent abuse
+6. Implement URL blacklist for known malicious domains
+7. Add content security policy headers
 
 ---
 
@@ -492,79 +731,198 @@ Roles:
 
 ### Global Exception Handling
 
-Centralized error handling via `ResponseEntityHelper`:
+Centralized error handling via `@RestControllerAdvice` in `GlobalExceptionHandler`:
 
 ```java
-public static ResponseEntity failureResponseEntity(Exception e, String errorCode) {
-    Map<String, String> responseMap = new HashMap<>();
-    responseMap.put("id", String.valueOf(System.currentTimeMillis()));
-    responseMap.put("message", e.getMessage());
-    responseMap.put("errorCode", errorCode);
-    return ResponseEntity
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(responseMap);
-}
-```
+@RestControllerAdvice
+public class GlobalExceptionHandler {
 
-### Error Response Format
+    @ExceptionHandler(ShortUrlAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleShortUrlAlreadyExists(
+            ShortUrlAlreadyExistsException ex) {
+        return ResponseEntityHelper.failureResponseEntity(
+                ex, ErrorCodes.ALIAS_ALREADY_EXISTS, HttpStatus.CONFLICT);
+    }
 
-```json
-{
-  "id": "1704380400000",
-  "message": "Detailed error message",
-  "errorCode": "NOT_FOUND"
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        // Builds detailed validation error message
+        return ResponseEntityHelper.failureResponseEntity(
+                ErrorCodes.VALIDATION_ERROR, message, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ErrorResponse> handleNoSuchElementException(
+            NoSuchElementException ex) {
+        return ResponseEntityHelper.failureResponseEntity(
+                ex, ErrorCodes.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        return ResponseEntityHelper.failureResponseEntity(
+                ErrorCodes.INTERNAL_SERVER_ERROR, message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }
 ```
 
 ### Exception Handling Strategy
 
-| Exception Type          | Error Code  | HTTP Status | Description                |
-|-------------------------|-------------|-------------|----------------------------|
-| NoSuchElementException  | NOT_FOUND   | 500         | Short URL not found in DB  |
-| RuntimeException        | null        | 500         | Generic server error       |
-| NoSuchAlgorithmException| null        | 500         | SHA-256 algorithm missing  |
+| Exception Type                      | Error Code               | HTTP Status | Description                          |
+|-------------------------------------|--------------------------|-------------|--------------------------------------|
+| ShortUrlAlreadyExistsException      | ALIAS_ALREADY_EXISTS     | 409         | Custom alias already in use          |
+| MethodArgumentNotValidException     | VALIDATION_ERROR         | 400         | Request validation failed            |
+| NoSuchElementException              | NOT_FOUND                | 404         | Short URL not found in database      |
+| Exception (generic)                 | INTERNAL_SERVER_ERROR    | 500         | Unexpected server error              |
+
+### Error Response Format
+
+```json
+{
+  "errorCode": "NOT_FOUND",
+  "message": "Detailed error message",
+  "statusCode": 404
+}
+```
 
 ### Logging Framework
 
 **SLF4J with Logback** (Spring Boot default)
 
+All classes implement comprehensive logging at multiple levels:
+
 ```java
-private static final Logger logger = LoggerFactory.getLogger(ResponseEntityHelper.class);
+private static final Logger logger = LoggerFactory.getLogger(ClassName.class);
+```
+
+### Logging Implementation
+
+#### **Comprehensive Logging Across All Layers**
+
+**1. Controller Layer** (`UrlShortenerController`, `WelcomeController`)
+```java
+logger.trace("Received shorten URL request: longUrl={}, customAlias={}", longUrl, customAlias);
+logger.debug("Processing URL shortening request for: {}", longUrl);
+logger.info("Creating shortened URL for: {}", longUrl);
+logger.warn("Client attempted to use existing alias: {}", alias);
+logger.error("Error processing request: {}", exception.getMessage(), exception);
+```
+
+**2. Service Layer** (`UrlShortenerService`)
+```java
+logger.trace("shortenUrl called: longUrl={}, customAlias={}", longUrl, customAlias);
+logger.debug("Computing SHA-256 hash for URL");
+logger.info("Generating auto-generated short URL using SHA-256");
+logger.warn("Custom alias already exists: {}", customAlias);
+```
+
+**3. Exception Handler** (`GlobalExceptionHandler`)
+```java
+logger.trace("Handling ShortUrlAlreadyExistsException: message={}", ex.getMessage(), ex);
+logger.debug("Custom alias conflict detected: errorCode={}, message={}", errorCode, message);
+logger.info("Short URL alias already exists, returning 409 Conflict");
+logger.warn("Client attempted to use existing alias");
+logger.error("Unhandled exception occurred: errorCode={}, exceptionType={}", errorCode, type, ex);
+```
+
+**4. Response Helper** (`ResponseEntityHelper`)
+```java
+logger.trace("Creating success response entity with HTTP 200 OK");
+logger.debug("Success response created: status=200, body={}", body);
+logger.info("Returning successful response with HTTP 200 OK");
+logger.warn("Client error occurred: errorCode={}, status={}", errorCode, status);
+logger.error("Server error occurred: errorCode={}, status={}", errorCode, status, exception);
+```
+
+**5. Request Logging Filter** (`RequestLoggingFilter`)
+```java
+logger.info("Incoming request: method={}, uri={}, remoteAddr={}, correlationId={}",
+    method, uri, remoteAddr, correlationId);
+logger.info("Outgoing response: method={}, uri={}, status={}, duration={}ms, correlationId={}",
+    method, uri, status, duration, correlationId);
 ```
 
 ### Log Levels
 
-| Level | Usage                                          |
-|-------|------------------------------------------------|
-| ERROR | Exceptions, critical failures                  |
-| WARN  | Deprecated features, potential issues          |
-| INFO  | Application startup, configuration, key events |
-| DEBUG | Detailed flow information                      |
-| TRACE | Very detailed debugging (SQL queries)          |
+| Level | Usage                                          | Implementation                    |
+|-------|------------------------------------------------|-----------------------------------|
+| TRACE | Method entry/exit, detailed debugging          | All method entries, parameter values |
+| DEBUG | Detailed flow information, intermediate steps  | Processing steps, computed values |
+| INFO  | Key events, successful operations              | Request/response, operation success |
+| WARN  | Client errors, potential issues                | 4xx errors, validation failures   |
+| ERROR | Server errors, exceptions                      | 5xx errors, exception stack traces |
 
-### Logging Best Practices
+### Logging Configuration
 
-**Current Implementation**:
-- Basic logging in `ResponseEntityHelper`
-- Hibernate SQL logging enabled in development
-
-**Recommended Enhancements**:
-```java
-// Add structured logging
-logger.info("URL shortened: longUrl={}, shortUrl={}, duration={}ms",
-    longUrl, shortUrl, duration);
-
-// Add correlation IDs for request tracing
-MDC.put("requestId", UUID.randomUUID().toString());
+**application.yml**:
+```yaml
+logging:
+  level:
+    root: INFO
+    ind.shubhamn.precisrest: DEBUG
+    org.springframework.web: DEBUG
+    org.flywaydb: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 ```
 
-### Correlation IDs / Tracing
+### Correlation IDs / Request Tracing
 
-**Future Enhancement**: Implement distributed tracing
-- **Spring Cloud Sleuth**: Automatic correlation ID generation
-- **Zipkin/Jaeger**: Distributed tracing visualization
-- **ELK Stack**: Centralized log aggregation
+**Implemented**: `RequestLoggingFilter` with correlation ID support
+
+```java
+@Component
+public class RequestLoggingFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) {
+        // Generate or extract correlation ID
+        String correlationId = request.getHeader("X-Correlation-ID");
+        if (correlationId == null) {
+            correlationId = UUID.randomUUID().toString();
+        }
+
+        // Add to MDC for logging
+        MDC.put("correlationId", correlationId);
+
+        // Add to response header
+        response.setHeader("X-Correlation-ID", correlationId);
+
+        // Log request and response with correlation ID
+        logger.info("Incoming request: method={}, uri={}, correlationId={}",
+            method, uri, correlationId);
+    }
+}
+```
+
+**Features**:
+- Automatic correlation ID generation
+- MDC (Mapped Diagnostic Context) integration
+- Request/response logging with timing
+- Client IP address tracking
+- Correlation ID propagation via HTTP headers
+
+### Distributed Tracing
+
+**Configured**: Zipkin integration for distributed tracing
+
+```yaml
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+```
+
+**Dependencies**:
+- `io.micrometer:micrometer-tracing-bridge-brave`
+- `io.zipkin.reporter2:zipkin-reporter-brave`
 
 ---
 
@@ -572,15 +930,20 @@ MDC.put("requestId", UUID.randomUUID().toString());
 
 ### Test Coverage
 
-**Current Test Suite**: 8 tests across 3 test classes
+**Current Test Suite**: 20 tests across 6 test classes
 
 ```
-src/test/java/
-├── PrecisApplicationTests.java              # Integration test
+src/test/java/ind/shubhamn/precisrest/
+├── PrecisApplicationTests.java                          # Integration test (1 test)
+├── annotations/
+│   └── ControllerTest.java                              # Custom test annotation
 ├── rest/
-│   └── UrlShortenerControllerTest.java      # Controller tests (5 tests)
+│   ├── UrlShortenerControllerTest.java                  # Controller tests (7 tests)
+│   ├── UrlShortenerControllerCustomAliasTest.java       # Custom alias tests (4 tests)
+│   └── WelcomeControllerTest.java                       # Welcome page test (1 test)
 └── service/
-    └── UrlShortenerServiceTest.java         # Service tests (2 tests)
+    ├── UrlShortenerServiceTest.java                     # Service tests (4 tests)
+    └── UrlShortenerServiceCustomAliasTest.java          # Custom alias service tests (3 tests)
 ```
 
 ### Testing Layers
@@ -589,19 +952,47 @@ src/test/java/
 
 **Service Layer Tests** (`UrlShortenerServiceTest`)
 - Framework: JUnit 5 + Mockito
-- Mocks: `UrlShortenerDAO`
+- Mocks: `UrlShortenerDAO`, `UrlMapper`
 - Coverage: Business logic isolation
+- Tests: 4 tests covering URL shortening and retrieval
 
 ```java
-@InjectMocks
-private UrlShortenerService urlShortenerService;
+@ExtendWith(MockitoExtension.class)
+public class UrlShortenerServiceTest {
+    @InjectMocks
+    private UrlShortenerService urlShortenerService;
 
-@Mock
-private UrlShortenerDAO urlShortenerDAO;
+    @Mock
+    private UrlShortenerDAO urlShortenerDAO;
+
+    @Mock
+    private UrlMapper urlMapper;
+
+    @Test
+    public void testShortenUrl_Success() {
+        // Test auto-generated URL shortening
+    }
+
+    @Test
+    public void testGetLongUrl_Success() {
+        // Test URL retrieval
+    }
+}
+```
+
+**Custom Alias Service Tests** (`UrlShortenerServiceCustomAliasTest`)
+- Tests: 3 tests covering custom alias functionality
+- Scenarios: Success, duplicate alias, null alias
+
+```java
+@Test
+public void testShortenUrl_WithCustomAlias_Success() {
+    // Test custom alias creation
+}
 
 @Test
-public void shortenUrlTest() throws Exception {
-    // Test URL shortening logic
+public void testShortenUrl_WithCustomAlias_AlreadyExists() {
+    // Test duplicate alias handling
 }
 ```
 
@@ -609,37 +1000,81 @@ public void shortenUrlTest() throws Exception {
 
 **Controller Tests** (`UrlShortenerControllerTest`)
 - Framework: Spring Boot Test + MockMvc
-- Annotation: `@WebMvcTest`
-- Mocks: `@MockitoBean` for service layer
+- Annotation: `@ControllerTest` (custom annotation)
+- Mocks: `@MockBean` for service layer
+- Tests: 7 tests covering all controller endpoints
 
 ```java
-@WebMvcTest
+@ControllerTest
 public class UrlShortenerControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockBean
     private UrlShortenerService urlShortenerService;
+
+    @Test
+    public void testShortenUrl_Success() throws Exception {
+        // Test POST /shorten endpoint
+    }
+
+    @Test
+    public void testGetLongUrl_Success() throws Exception {
+        // Test POST /long endpoint
+    }
 }
 ```
+
+**Custom Alias Controller Tests** (`UrlShortenerControllerCustomAliasTest`)
+- Tests: 4 tests covering custom alias scenarios
+- Scenarios: Success, duplicate alias, validation errors
+
+**Welcome Controller Tests** (`WelcomeControllerTest`)
+- Tests: 1 test for welcome page endpoint
+- Validates HTML response
 
 **Application Context Test** (`PrecisApplicationTests`)
 - Validates Spring Boot application context loads successfully
 - Uses H2 in-memory database
 - Profile: `test`
 
-#### 3. Test Scenarios Covered
+#### 3. Custom Test Annotations
 
-| Test Case                              | Type        | Purpose                          |
-|----------------------------------------|-------------|----------------------------------|
-| `contextLoads()`                       | Integration | Spring context initialization    |
-| `createShortenedUrlTest()`             | Controller  | Successful URL shortening        |
-| `createShortenedUrlWithExceptionTest()`| Controller  | Error handling for shortening    |
-| `getLongUrlTest()`                     | Controller  | Successful URL retrieval         |
-| `getLongUrlWithExceptionTest()`        | Controller  | Generic error handling           |
-| `getLongUrlWithNoSuchElementExceptionTest()` | Controller | Not found error handling   |
-| `shortenUrlTest()`                     | Service     | Service layer shortening logic   |
-| `getLongUrlTest()`                     | Service     | Service layer retrieval logic    |
+**@ControllerTest** - Composite annotation for controller tests:
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@WebMvcTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+public @interface ControllerTest {
+}
+```
+
+#### 4. Test Scenarios Covered
+
+| Test Case                                      | Class                                  | Type        | Purpose                          |
+|------------------------------------------------|----------------------------------------|-------------|----------------------------------|
+| `contextLoads()`                               | PrecisApplicationTests                 | Integration | Spring context initialization    |
+| `testShortenUrl_Success()`                     | UrlShortenerControllerTest             | Controller  | Successful URL shortening        |
+| `testShortenUrl_ValidationError()`             | UrlShortenerControllerTest             | Controller  | Validation error handling        |
+| `testShortenUrl_ServiceException()`            | UrlShortenerControllerTest             | Controller  | Service exception handling       |
+| `testGetLongUrl_Success()`                     | UrlShortenerControllerTest             | Controller  | Successful URL retrieval         |
+| `testGetLongUrl_NotFound()`                    | UrlShortenerControllerTest             | Controller  | Not found error handling         |
+| `testGetLongUrl_ValidationError()`             | UrlShortenerControllerTest             | Controller  | Validation error handling        |
+| `testGetLongUrl_ServiceException()`            | UrlShortenerControllerTest             | Controller  | Service exception handling       |
+| `testShortenUrl_WithCustomAlias_Success()`     | UrlShortenerControllerCustomAliasTest  | Controller  | Custom alias creation            |
+| `testShortenUrl_WithCustomAlias_AlreadyExists()`| UrlShortenerControllerCustomAliasTest | Controller  | Duplicate alias handling         |
+| `testShortenUrl_WithCustomAlias_ValidationError()`| UrlShortenerControllerCustomAliasTest| Controller  | Custom alias validation          |
+| `testShortenUrl_WithCustomAlias_NullAlias()`   | UrlShortenerControllerCustomAliasTest  | Controller  | Null alias handling              |
+| `testWelcomePage()`                            | WelcomeControllerTest                  | Controller  | Welcome page rendering           |
+| `testShortenUrl_Success()`                     | UrlShortenerServiceTest                | Service     | Service layer shortening logic   |
+| `testShortenUrl_NullLongUrl()`                 | UrlShortenerServiceTest                | Service     | Null URL handling                |
+| `testGetLongUrl_Success()`                     | UrlShortenerServiceTest                | Service     | Service layer retrieval logic    |
+| `testGetLongUrl_NotFound()`                    | UrlShortenerServiceTest                | Service     | Not found handling               |
+| `testShortenUrl_WithCustomAlias_Success()`     | UrlShortenerServiceCustomAliasTest     | Service     | Custom alias service logic       |
+| `testShortenUrl_WithCustomAlias_AlreadyExists()`| UrlShortenerServiceCustomAliasTest    | Service     | Duplicate alias service logic    |
+| `testShortenUrl_WithCustomAlias_NullAlias()`   | UrlShortenerServiceCustomAliasTest     | Service     | Null alias service logic         |
 
 ### Test Database Configuration
 
@@ -661,13 +1096,13 @@ spring:
 
 ```bash
 # Run all tests
-./gradlew test
+./gradlew test --configuration-cache
 
 # Run with coverage report
-./gradlew test jacocoTestReport
+./gradlew test jacocoTestReport --configuration-cache
 
 # Run specific test class
-./gradlew test --tests UrlShortenerControllerTest
+./gradlew test --tests UrlShortenerControllerTest --configuration-cache
 ```
 
 ### Code Coverage Expectations
@@ -688,9 +1123,12 @@ src/test/
 │       ├── annotations/
 │       │   └── ControllerTest.java
 │       ├── rest/
-│       │   └── UrlShortenerControllerTest.java
+│       │   ├── UrlShortenerControllerTest.java
+│       │   ├── UrlShortenerControllerCustomAliasTest.java
+│       │   └── WelcomeControllerTest.java
 │       └── service/
-│           └── UrlShortenerServiceTest.java
+│           ├── UrlShortenerServiceTest.java
+│           └── UrlShortenerServiceCustomAliasTest.java
 └── resources/
     └── application-test.yml
 ```
@@ -751,10 +1189,10 @@ GRANT ALL PRIVILEGES ON DATABASE precis TO postgres;
 
 ```bash
 # Linux/macOS
-./gradlew clean build
+./gradlew clean build --configuration-cache
 
 # Windows
-gradlew.bat clean build
+gradlew.bat clean build --configuration-cache
 ```
 
 **Build Output**:
@@ -769,10 +1207,10 @@ BUILD SUCCESSFUL in 14s
 
 ```bash
 # Linux/macOS
-./gradlew bootRun
+./gradlew bootRun --configuration-cache
 
 # Windows
-gradlew.bat bootRun
+gradlew.bat bootRun --configuration-cache
 ```
 
 **Option B: Using JAR**
@@ -799,28 +1237,32 @@ curl -X POST http://localhost:8080/app/rest/shorten \
 
 ### Build Commands Reference
 
+All commands use `--configuration-cache` for improved build performance (20-40% faster). See `GRADLE_CONFIGURATION_CACHE.md` for details.
+
 ```bash
 # Clean build artifacts
-./gradlew clean
+./gradlew clean --configuration-cache
 
 # Compile source code
-./gradlew compileJava
+./gradlew compileJava --configuration-cache
 
 # Run tests
-./gradlew test
+./gradlew test --configuration-cache
 
 # Build without tests
-./gradlew build -x test
+./gradlew build -x test --configuration-cache
 
 # Generate test coverage report
-./gradlew jacocoTestReport
+./gradlew jacocoTestReport --configuration-cache
 
 # Check for dependency updates
-./gradlew dependencyUpdates
+./gradlew dependencyUpdates --configuration-cache
 
 # View project dependencies
-./gradlew dependencies
+./gradlew dependencies --configuration-cache
 ```
+
+**Performance Tip**: First build creates cache (~14s), subsequent builds are 30-40% faster (~8-10s)!
 
 ### Docker Build (Future Enhancement)
 

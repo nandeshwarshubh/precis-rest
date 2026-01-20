@@ -1,25 +1,29 @@
 package ind.shubhamn.precisrest.model;
 
-import ind.shubhamn.precisrest.validation.UrlValidator;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+/**
+ * JPA Entity representing a shortened URL mapping. Maps to the url_shorten table in the precis
+ * schema.
+ */
 @Entity
 @Table(
         name = "url_shorten",
         schema = "precis",
         indexes = {@Index(name = "idx_long_url", columnList = "long_url")})
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ShortenedUrl {
 
     @Id
     @Column(name = "short_url", length = 8, nullable = false)
     private String shortUrl;
 
-    @NotBlank(message = "URL cannot be empty")
-    @Size(max = 2048, message = "URL cannot exceed 2048 characters")
-    @UrlValidator
     @Column(name = "long_url", length = 2048, nullable = false)
     private String longUrl;
 
@@ -29,42 +33,14 @@ public class ShortenedUrl {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-
-    // Getters and Setters
-    public String getShortUrl() {
-        return shortUrl;
-    }
-
-    public void setShortUrl(String shortUrl) {
+    public ShortenedUrl(String shortUrl, String longUrl) {
         this.shortUrl = shortUrl;
-    }
-
-    public String getLongUrl() {
-        return longUrl;
-    }
-
-    public void setLongUrl(String longUrl) {
         this.longUrl = longUrl;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(LocalDateTime expiresAt) {
-        this.expiresAt = expiresAt;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
     }
 
     public boolean isExpired() {
