@@ -3,6 +3,9 @@ database:
   username: "postgres"
   password: "postgres"
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4000}
+
 spring:
   application:
     name: precis-rest
