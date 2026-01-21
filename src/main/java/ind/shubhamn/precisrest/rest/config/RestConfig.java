@@ -1,6 +1,10 @@
 package ind.shubhamn.precisrest.rest.config;
 
 import java.util.Arrays;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -10,11 +14,30 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class RestConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(RestConfig.class);
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     public CorsFilter corsFilter() {
+        logger.info("Configuring CORS filter...");
+        logger.info("Raw CORS_ALLOWED_ORIGINS value: '{}'", allowedOrigins);
+
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowCredentials(true);
-        corsConfiguration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+
+        // Parse comma-separated origins from environment variable
+        // Trim whitespace from each origin to handle "url1, url2" format
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+
+        logger.info("Parsed CORS allowed origins: {}", origins);
+        logger.info("Number of allowed origins: {}", origins.size());
+
+        corsConfiguration.setAllowedOrigins(origins);
         corsConfiguration.setAllowedHeaders(
                 Arrays.asList(
                         "Origin",
