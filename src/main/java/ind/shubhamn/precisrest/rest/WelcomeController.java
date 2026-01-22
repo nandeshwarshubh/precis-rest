@@ -104,13 +104,13 @@ public class WelcomeController {
                                       <!-- Hero / ASCII Logo -->
                                       <div class="w-full flex flex-col items-center mb-16">
                                       <pre class="ascii-art text-primary text-[0.6rem] sm:text-[0.7rem] md:text-xs text-center mb-8 select-none">
-                                      ██████╗ ██████╗ ███████╗ ██████╗██╗███████╗
-                                      ██╔══██╗██╔══██╗██╔════╝██╔════╝██║██╔════╝
-                                      ██████╔╝██████╔╝█████╗  ██║     ██║███████╗
-                                      ██╔═══╝ ██╔══██╗██╔══╝  ██║     ██║╚════██║
-                                      ██║     ██║  ██║███████╗╚██████╗██║███████║
-                                      ╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝╚══════╝
-                                                      </pre>
+██████╗ ██████╗ ███████╗ ██████╗██╗███████╗
+██╔══██╗██╔══██╗██╔════╝██╔════╝██║██╔════╝
+██████╔╝██████╔╝█████╗  ██║     ██║███████╗
+██╔═══╝ ██╔══██╗██╔══╝  ██║     ██║╚════██║
+██║     ██║  ██║███████╗╚██████╗██║███████║
+╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝╚══════╝
+</pre>
                                       <div class="inline-flex items-center gap-2 px-4 py-2 glass-panel border border-primary/20 rounded-lg">
                                       <span class="flex size-2 rounded-full bg-[#33FF77] animate-pulse"></span>
                                       <span class="terminal-green font-mono text-sm font-bold">✓ Precis is ready!</span>
