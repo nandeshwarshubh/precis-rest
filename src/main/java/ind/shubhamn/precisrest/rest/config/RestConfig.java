@@ -29,10 +29,11 @@ public class RestConfig {
 
         // Parse comma-separated origins from environment variable
         // Trim whitespace from each origin to handle "url1, url2" format
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isEmpty())
-                .toList();
+        List<String> origins =
+                Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(origin -> !origin.isEmpty())
+                        .toList();
 
         logger.info("Parsed CORS allowed origins: {}", origins);
         logger.info("Number of allowed origins: {}", origins.size());

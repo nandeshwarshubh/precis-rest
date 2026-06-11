@@ -16,7 +16,8 @@ public class WelcomeController {
         logger.trace("Welcome page requested");
         logger.debug("Serving welcome HTML page");
         logger.info("Returning welcome page");
-        return """
+        return
+"""
            <!DOCTYPE html>
 
                                       <html class="dark" lang="en"><head>
@@ -121,6 +122,6 @@ public class WelcomeController {
                                       </div>
 
                                       </body></html>
-        """;
+""";
     }
 }
